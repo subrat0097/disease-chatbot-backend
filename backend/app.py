@@ -1,0 +1,62 @@
+from flask import Flask, request, jsonify
+from flask_cors import CORS
+import joblib
+import json
+import numpy as np
+import pandas as pd
+
+app = Flask(__name__)
+CORS(app)
+
+# Load model assets
+model      = joblib.load('disease_model.pkl')
+le         = joblib.load('label_encoder.pkl')
+with open('symptoms_list.json') as f:
+    all_symptoms = json.load(f)
+
+@app.route('/health', methods=['GET'])
+def health():
+    return jsonify({"status": "ok"})
+
+@app.route('/symptoms', methods=['GET'])
+def get_symptoms():
+    return jsonify({"symptoms": all_symptoms})
+
+@app.route('/predict', methods=['POST'])
+def predict():
+    data = request.get_json()
+
+    selected_symptoms = [s.strip().lower() for s in data.get('symptoms', [])]
+    age               = int(data.get('age', 25))
+    gender            = data.get('gender', 'male').lower()
+
+    if not selected_symptoms:
+        return jsonify({"error": "No symptoms provided"}), 400
+
+    # Build feature vector
+    gender_map = {'male': 0, 'female': 1, 'other': 2}
+    row = {sym: 1 if sym in selected_symptoms else 0 for sym in all_symptoms}
+    row['Age']        = age
+    row['Gender_enc'] = gender_map.get(gender, 0)
+
+    X = pd.DataFrame([row])
+
+    # Predict top 3
+    proba  = model.predict_proba(X)[0]
+    top3   = np.argsort(proba)[::-1][:3]
+    results = [
+        {
+            "disease":     le.inverse_transform([i])[0],
+            "confidence":  round(float(proba[i]) * 100, 1)
+        }
+        for i in top3
+    ]
+
+    return jsonify({
+        "prediction": results[0]["disease"],
+        "confidence": results[0]["confidence"],
+        "top3":       results
+    })
+
+if __name__ == '__main__':
+    app.run(debug=True, port=5000)
