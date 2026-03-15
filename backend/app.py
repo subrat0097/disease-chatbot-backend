@@ -49,11 +49,7 @@ def predict():
         return jsonify({"error": "No symptoms provided"}), 400
 
     # Build feature vector
-    gender_map = {'male': 0, 'female': 1, 'other': 2}
     row = {sym: 1 if sym in selected_symptoms else 0 for sym in all_symptoms}
-    row['Age'] = age
-    row['Gender_enc'] = gender_map.get(gender, 0)
-
     X = pd.DataFrame([row])
 
     # Predict top 3
