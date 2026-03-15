@@ -19,6 +19,17 @@ desc_df = pd.read_csv('symptom_Description.csv')
 desc_df['Disease'] = desc_df['Disease'].str.strip()
 disease_descriptions = dict(zip(desc_df['Disease'], desc_df['Description']))
 
+# Fix name mismatches between model and description file
+name_fixes = {
+    "Dimorphic hemmorhoids(piles)": "Dimorphic hemorrhoids(piles)",
+    "Diabetes ": "Diabetes",
+    "Hypertension ": "Hypertension",
+}
+
+def get_description(disease_name):
+    fixed = name_fixes.get(disease_name, disease_name)
+    return disease_descriptions.get(fixed, disease_descriptions.get(disease_name, "No description available."))
+
 def get_confidence_label(confidence):
     if confidence >= 50:
         return "Very Common"
@@ -63,7 +74,7 @@ def predict():
             "disease": disease_name,
             "confidence": confidence,
             "label": get_confidence_label(confidence),
-            "description": disease_descriptions.get(disease_name, "No description available.")
+            "description": get_description(disease_name)
         })
 
     return jsonify({
