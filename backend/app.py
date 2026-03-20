@@ -19,6 +19,10 @@ desc_df = pd.read_csv('symptom_Description.csv')
 desc_df['Disease'] = desc_df['Disease'].str.strip()
 disease_descriptions = dict(zip(desc_df['Disease'], desc_df['Description']))
 
+# Load disease symptoms map
+with open('disease_symptoms_map.json') as f:
+    disease_symptoms_map = json.load(f)
+
 # Fix name mismatches between model and description file
 name_fixes = {
     "Dimorphic hemmorhoids(piles)": "Dimorphic hemorrhoids(piles)",
@@ -70,11 +74,18 @@ def predict():
     for i in top3:
         disease_name = le.inverse_transform([i])[0].strip()
         confidence = round(float(proba[i]) * 100, 1)
+    
+    # Find matched symptoms
+        known_symptoms = disease_symptoms_map.get(disease_name, [])
+        matched = [s for s in selected_symptoms if s in known_symptoms]
+    
         results.append({
-            "disease": disease_name,
-            "confidence": confidence,
-            "label": get_confidence_label(confidence),
-            "description": get_description(disease_name)
+        "disease": disease_name,
+        "confidence": confidence,
+        "label": get_confidence_label(confidence),
+        "description": get_description(disease_name),
+        "matched_symptoms": matched,
+        "total_known": len(known_symptoms)
         })
 
     return jsonify({
