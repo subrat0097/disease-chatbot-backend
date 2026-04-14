@@ -52,7 +52,7 @@ def get_symptoms():
     return jsonify({"symptoms": all_symptoms})
 
 # Add this after your model loads — Heart attack needs more evidence
-HA_THRESHOLD = 0.45  # Only show HA as top result if it's genuinely dominant
+HA_THRESHOLD = 0.65  # Only show HA as top result if it's genuinely dominant
 
 @app.route('/predict', methods=['POST'])
 def predict():
@@ -77,7 +77,7 @@ def predict():
 
     # Penalize HA if no HA-specific symptoms present AND score is borderline
     if ha_specific_count == 0 and ha_score < HA_THRESHOLD:
-        proba[ha_idx] *= 0.4   # reduce its weight
+        proba[ha_idx] *= 0.25   # reduce its weight
         # renormalize
         proba = proba / proba.sum()
     # ────────────────────────────────────────────────────────────────
