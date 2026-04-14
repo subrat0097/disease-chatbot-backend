@@ -69,16 +69,22 @@ def predict():
     proba = model.predict_proba(X)[0]
 
     # ── Heart Attack guard ──────────────────────────────────────────
+    ha_specific = ['jaw_pain', 'back_pain', 'neck_pain', 'cold_hands_and_feets',
+               'anxiety', 'fatigue', 'dizziness', 'nausea']
+
     ha_idx = list(le.classes_).index('Heart attack')
     ha_score = proba[ha_idx]
-    ha_specific = ['jaw_pain', 'back_pain', 'neck_pain', 'cold_hands_and_feets',
-                   'anxiety', 'fatigue', 'dizziness', 'nausea']
     ha_specific_count = sum(1 for s in selected_symptoms if s in ha_specific)
+    symptom_count = len(selected_symptoms)
 
-    # Penalize HA if no HA-specific symptoms present AND score is borderline
-    if ha_specific_count == 0 and ha_score < HA_THRESHOLD:
-        proba[ha_idx] *= 0.25   # reduce its weight
-        # renormalize
+# Case 1: No HA-specific symptoms at all → heavy penalty
+    if ha_specific_count == 0:
+        proba[ha_idx] *= 0.15
+        proba = proba / proba.sum()
+
+# Case 2: Only 1-2 HA-specific but very few total symptoms → moderate penalty
+    elif ha_specific_count == 1 and symptom_count <= 3:
+        proba[ha_idx] *= 0.4
         proba = proba / proba.sum()
     # ────────────────────────────────────────────────────────────────
 
