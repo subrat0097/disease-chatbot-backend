@@ -54,6 +54,7 @@ def get_symptoms():
 # Add this after your model loads — Heart attack needs more evidence
 HA_THRESHOLD = 0.65  # Only show HA as top result if it's genuinely dominant
 
+
 @app.route('/predict', methods=['POST'])
 def predict():
     data = request.get_json()
