@@ -7,6 +7,7 @@ import pandas as pd
 
 app = Flask(__name__)
 CORS(app)
+
 # Load model assets
 model = joblib.load('disease_model.pkl')
 le = joblib.load('label_encoder.pkl')
@@ -22,7 +23,7 @@ disease_descriptions = dict(zip(desc_df['Disease'], desc_df['Description']))
 with open('disease_symptoms_map.json') as f:
     disease_symptoms_map = json.load(f)
 
-# Fix name mismatches between model and description file
+# Fix name mismatches
 name_fixes = {
     "Dimorphic hemmorhoids(piles)": "Dimorphic hemorrhoids(piles)",
     "Diabetes ": "Diabetes",
@@ -51,10 +52,6 @@ def health():
 def get_symptoms():
     return jsonify({"symptoms": all_symptoms})
 
-# Add this after your model loads — Heart attack needs more evidence
-HA_THRESHOLD = 0.65  # Only show HA as top result if it's genuinely dominant
-
-
 @app.route('/predict', methods=['POST'])
 def predict():
     data = request.get_json()
@@ -69,25 +66,18 @@ def predict():
     X = pd.DataFrame([row])
     proba = model.predict_proba(X)[0]
 
-    # ── Heart Attack guard ──────────────────────────────────────────
+    # Heart Attack guard
     ha_specific = ['jaw_pain', 'back_pain', 'neck_pain', 'cold_hands_and_feets',
-               'anxiety', 'fatigue', 'dizziness', 'nausea']
-
+                   'anxiety', 'fatigue', 'dizziness', 'nausea']
     ha_idx = list(le.classes_).index('Heart attack')
-    ha_score = proba[ha_idx]
     ha_specific_count = sum(1 for s in selected_symptoms if s in ha_specific)
-    symptom_count = len(selected_symptoms)
 
-# Case 1: No HA-specific symptoms at all → heavy penalty
     if ha_specific_count == 0:
         proba[ha_idx] *= 0.15
         proba = proba / proba.sum()
-
-# Case 2: Only 1-2 HA-specific but very few total symptoms → moderate penalty
-    elif ha_specific_count == 1 and symptom_count <= 3:
+    elif ha_specific_count == 1 and len(selected_symptoms) <= 3:
         proba[ha_idx] *= 0.4
         proba = proba / proba.sum()
-    # ────────────────────────────────────────────────────────────────
 
     top3 = np.argsort(proba)[::-1][:3]
     results = []
