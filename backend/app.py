@@ -19,6 +19,22 @@ desc_df = pd.read_csv('symptom_Description.csv')
 desc_df['Disease'] = desc_df['Disease'].str.strip()
 disease_descriptions = dict(zip(desc_df['Disease'], desc_df['Description']))
 
+# Load precautions
+prec_df = pd.read_csv('symptom_precaution.csv')
+prec_df['Disease'] = prec_df['Disease'].str.strip()
+disease_precautions = {}
+for _, row in prec_df.iterrows():
+    precautions = [row[f'Precaution_{i}'] for i in range(1, 5) if pd.notna(row[f'Precaution_{i}'])]
+    disease_precautions[row['Disease']] = precautions
+
+# Diseases that need doctor
+consult_doctor = [
+    'Heart attack', 'Paralysis (brain hemorrhage)', 'AIDS',
+    'Tuberculosis', 'Hepatitis B', 'Hepatitis C', 'Hepatitis D',
+    'Hepatitis E', 'hepatitis A', 'Alcoholic hepatitis', 'Dengue',
+    'Malaria', 'Pneumonia', 'Diabetes', 'Hypoglycemia'
+]
+
 # Load disease symptoms map
 with open('disease_symptoms_map.json') as f:
     disease_symptoms_map = json.load(f)
@@ -92,7 +108,9 @@ def predict():
             "label": get_confidence_label(confidence),
             "description": get_description(disease_name),
             "matched_symptoms": matched,
-            "total_known": len(known_symptoms)
+            "total_known": len(known_symptoms),
+            "precautions": disease_precautions.get(disease_name, []),
+            "needs_doctor": disease_name in consult_doctor
         })
 
     return jsonify({
