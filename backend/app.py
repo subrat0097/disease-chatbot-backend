@@ -8,18 +8,15 @@ import pandas as pd
 app = Flask(__name__)
 CORS(app)
 
-# Load model assets
 model = joblib.load('disease_model.pkl')
 le = joblib.load('label_encoder.pkl')
 with open('symptoms_list.json') as f:
     all_symptoms = json.load(f)
 
-# Load disease descriptions
 desc_df = pd.read_csv('symptom_Description.csv')
 desc_df['Disease'] = desc_df['Disease'].str.strip()
 disease_descriptions = dict(zip(desc_df['Disease'], desc_df['Description']))
 
-# Load precautions
 prec_df = pd.read_csv('symptom_precaution.csv')
 prec_df['Disease'] = prec_df['Disease'].str.strip()
 disease_precautions = {}
@@ -27,7 +24,6 @@ for _, row in prec_df.iterrows():
     precautions = [row[f'Precaution_{i}'] for i in range(1, 5) if pd.notna(row[f'Precaution_{i}'])]
     disease_precautions[row['Disease']] = precautions
 
-# Diseases that need doctor
 consult_doctor = [
     'Heart attack', 'Paralysis (brain hemorrhage)', 'AIDS',
     'Tuberculosis', 'Hepatitis B', 'Hepatitis C', 'Hepatitis D',
@@ -35,11 +31,9 @@ consult_doctor = [
     'Malaria', 'Pneumonia', 'Diabetes', 'Hypoglycemia'
 ]
 
-# Load disease symptoms map
 with open('disease_symptoms_map.json') as f:
     disease_symptoms_map = json.load(f)
 
-# Fix name mismatches
 name_fixes = {
     "Dimorphic hemmorhoids(piles)": "Dimorphic hemorrhoids(piles)",
     "Diabetes ": "Diabetes",
@@ -82,7 +76,6 @@ def predict():
     X = pd.DataFrame([row])
     proba = model.predict_proba(X)[0]
 
-    # Heart Attack guard
     ha_specific = ['jaw_pain', 'back_pain', 'neck_pain', 'cold_hands_and_feets',
                    'anxiety', 'fatigue', 'dizziness', 'nausea']
     ha_idx = list(le.classes_).index('Heart attack')
